@@ -83,6 +83,8 @@ class Inimigo extends Obj {
         this.y = Math.floor(Math.random() * (638 - 62) + 62);
     }
 
+    
+
     esconde() {
         this.x = -500;
     }
