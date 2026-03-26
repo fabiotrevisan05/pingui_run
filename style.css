@@ -6,13 +6,62 @@
 body {
     background-color: #2b2b2b;
     color: rgb(186, 186, 186);
+    font-family: Arial, sans-serif; /* Adicionei uma fonte para não ficar a padrão do navegador */
 }
 
-canvas {
+/* A TELA INICIAL: Fica do mesmo tamanho e na mesma posição do Canvas */
+#tela-inicial {
+    width: 1200px;
+    height: 700px;
+    background-color: #1e1e1e; /* Um pouco mais escuro para dar destaque */
+    border-radius: 1rem;
+    
+    /* Sua técnica de centralização: */
     margin: auto;
     position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
+
+    /* Usamos isso só para centralizar o texto e o botão dentro da caixa */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#tela-inicial h1 {
+    font-size: 60px;
+    margin-bottom: 40px;
+    color: white;
+}
+
+#btn-jogar {
+    padding: 20px 60px;
+    font-size: 30px;
+    font-weight: bold;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#btn-jogar:hover {
+    background-color: #2ecc71;
+    transform: scale(1.05); /* Dá uma leve crescida no botão ao passar o mouse */
+}
+
+/* SEU CANVAS ORIGINAL: Só adicionei o display: none */
+canvas {
+    display: none; /* O jogo começa invisível! */
+    margin: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 1rem;
 }
