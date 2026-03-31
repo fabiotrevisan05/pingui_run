@@ -1,216 +1,328 @@
-let des = document.getElementById('des').getContext('2d');
+import Pinguim, { Inimigo, Coracao } from './models/Pinguim.js';
 
-let img = new Image();
-img.src = './img/fundo1.png';
+const canvas = document.getElementById('canvas').getContext('2d');
+const musicaFundo = new Audio('./musica.mp3');
+const background = new Image();
 
-let x = 0;
-let y = 0;
-let w = 1200;
-let h = 700;
+musicaFundo.loop = true;
+musicaFundo.volume = 0.5;
 
-// Criação dos inimigos
-let ursoPolar = new Inimigo(1250, 325, 300, 100, './img/inimigo1.png', 2);
-let yeti = new Inimigo(1000, 200, 250, 120, './img/inimigo2.png', 3);
-let foca = new Inimigo(1500, 400, 150, 50, './img/inimigo3.png', 1);
-let coalaMoto = new Inimigo(1250, 475, 300, 175, './img/coalamoto.png')
-
-// Criação dos Jogadores (Nasem em posições Y diferentes para não ficarem colados)
-let pinguin = new Pinguin(100, 250, 80, 50, './img/pinguim.png');     // Jogador 1
-let pinguin2 = new Pinguin(100, 450, 80, 50, './img/pinguim02.png'); // Jogador 2
-
-let jogar = true;
+let estado = 'inicio';
 let fase = 1;
+let pontos = 0;
 
-// CONTROLES SEPARADOS
-document.addEventListener('keydown', (e) => {
-    // Controles do Jogador 1 (W / S)
-    if (e.key === 'w' || e.key === 'W') {
-        pinguin.dir = -8;
-    } else if (e.key === 's' || e.key === 'S') {
-        pinguin.dir = 8;
-    }
+const ursoPolar = new Inimigo(1250, 325, 200, 100, './img/inimigo1.png');
+const yeti = new Inimigo(1000, 200, 200, 120, './img/inimigo2.png');
+const foca = new Inimigo(1500, 400, 100, 50, './img/inimigo3.png');
+const coalaMoto = new Inimigo(1250, 475, 300, 175, './img/coalamoto.png', true);
+const coracao = new Coracao(2000, 300, 50, 50, './img/coracao.png');
 
-    // Controles do Jogador 2 (Setas)
-    if (e.key === 'ArrowUp') {
-        pinguin2.dir = -8;
-    } else if (e.key === 'ArrowDown') {
-        pinguin2.dir = 8;
-    }
-});
+const pinguim = new Pinguim(75, 250, 50, 75, './img/pinguim_1.png');
+const pinguim2 = new Pinguim(125, 450, 50, 75, './img/pinguim2_1.png');
 
-document.addEventListener('keyup', (e) => {
-    // Parar Jogador 1
-    if (e.key === 'w' || e.key === 'W' || e.key === 's' || e.key === 'S') {
-        pinguin.dir = 0;
-    }
-    // Parar Jogador 2
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        pinguin2.dir = 0;
-    }
-});
-
-function game_over() {
-    // O jogo só acaba se a vida dos DOIS chegar a zero
-    if (pinguin.vida <= 0 && pinguin2.vida <= 0) {
-        jogar = false;
+function gerenciarMusica() {
+    if (estado === 'jogando') {
+        if (musicaFundo.paused) {
+            musicaFundo.play();
+        }
+    } else {
+        musicaFundo.pause();
     }
 }
 
-function ver_fase() {
-    // Usa a pontuação do Pinguin 1 que funciona como "Pontuação da Equipe"
-    if (fase === 1 && pinguin.pontos === 0 && yeti.x > -400) {
-        yeti.esconde();
-    }
+function resetarJogo() {
+    fase = 1;
+    pontos = 0;
+    estado = 'jogando';
 
-    if (pinguin.pontos > 20 && fase === 1) {
-        fase = 2;
+    pinguim.vida = 5;
+    pinguim2.vida = 5;
+    pinguim.posicaoY = 250;
+    pinguim2.posicaoY = 450;
+    pinguim.direcao = 0;
+    pinguim2.direcao = 0;
 
-        ursoPolar.vel = 6;
-        yeti.vel = 6;
-        foca.vel = 6;
-
-        yeti.recomeca();
-
-        img.src = './img/fundo1.png';
-    }
-    else if (pinguin.pontos > 40 && fase === 2) {
-        fase = 3;
-
-        ursoPolar.vel = 8;
-        yeti.vel = 8;
-        foca.vel = 8;
-        coalaMoto.vel = 18;
-        
-        if (yeti.x < 0) yeti.recomeca();
-
-        img.src = './img/fundo2.png';
-    } 
+    ursoPolar.reseta();
+    yeti.reseta();
+    foca.reseta();
+    coalaMoto.reseta();
+    coalaMoto.posicaoY = 475;
+    coracao.reseta();
 }
 
 function colisao() {
-    // Colisões do Jogador 1 (Só toma dano se estiver vivo)
-    if (pinguin.vida > 0) {
-        if (pinguin.colid(ursoPolar)) { ursoPolar.recomeca(); pinguin.vida -= ursoPolar.dano; }
-        if (fase >= 2 && pinguin.colid(yeti)) { yeti.recomeca(); pinguin.vida -= yeti.dano; }
-        if (pinguin.colid(foca)) { foca.recomeca(); pinguin.vida -= foca.dano; }
+    if (pinguim.vida > 0) {
+        if (pinguim.colide(ursoPolar)) {
+            ursoPolar.reseta();
+            pinguim.vida--;
+        }
+
+        if (pinguim.colide(foca)) {
+            foca.reseta();
+            pinguim.vida--;
+        }
+
+        if (fase >= 2 && pinguim.colide(yeti)) {
+            yeti.reseta();
+            pinguim.vida--;
+        }
+
+        if (fase >= 3 && pinguim.colide(coalaMoto)) {
+            coalaMoto.reseta();
+            coalaMoto.posicaoY = 475;
+            pinguim.vida--;
+        }
+
+        if (pinguim.colide(coracao)) {
+            coracao.reseta();
+            pinguim.vida++;
+        }
     }
 
-    // Colisões do Jogador 2 (Só toma dano se estiver vivo)
-    if (pinguin2.vida > 0) {
-        if (pinguin2.colid(ursoPolar)) {
-            ursoPolar.recomeca();
-            pinguin2.vida -= ursoPolar.dano;
+    if (pinguim2.vida > 0) {
+        if (pinguim2.colide(ursoPolar)) {
+            ursoPolar.reseta();
+            pinguim2.vida--;
         }
-        if (pinguin2.colid(coalaMoto)) {
-            coalaMoto.x = 1750;
-            pinguin2.vida = 0;
+
+        if (pinguim2.colide(foca)) {
+            foca.reseta();
+            pinguim2.vida--;
         }
-        if (fase >= 2 && pinguin2.colid(yeti)) {
-            yeti.recomeca();
-            pinguin2.vida -= yeti.dano;
+
+        if (fase >= 2 && pinguim2.colide(yeti)) {
+            yeti.reseta();
+            pinguim2.vida--;
         }
-        if (pinguin2.colid(foca)) {
-            foca.recomeca();
-            pinguin2.vida -= foca.dano;
+
+        if (fase >= 3 && pinguim2.colide(coalaMoto)) {
+            coalaMoto.reseta();
+            coalaMoto.posicaoY = 475;
+            pinguim2.vida--;
+        }
+
+        if (pinguim2.colide(coracao)) {
+            coracao.reseta();
+            pinguim2.vida++;
         }
     }
 }
 
 function pontuacao() {
-    // Usamos o pinguin 1 só para checar a passagem, a pontuação é da equipe!
-    if (pinguin.point(ursoPolar)) {
-        pinguin.pontos += 5;
-        ursoPolar.recomeca();
+    if (ursoPolar.saiuDaTela()) {
+        ursoPolar.reseta();
+        pontos += 5;
     }
-    if (fase >= 2 && pinguin.point(yeti)) {
-        pinguin.pontos += 5;
-        yeti.recomeca();
+
+    if (foca.saiuDaTela()) {
+        foca.reseta();
+        pontos += 5;
     }
-    if (fase >= 3 && pinguin.point(coalaMoto)) {
-        pinguin.pontos += 5;
-        coalaMoto.x = 1750;
+
+    if (fase >= 2 && yeti.saiuDaTela()) {
+        yeti.reseta();
+        pontos += 5;
     }
-    if (pinguin.point(foca)) {
-        pinguin.pontos += 5;
-        foca.recomeca();
+
+    if (fase >= 3 && coalaMoto.saiuDaTela()) {
+        coalaMoto.reseta();
+        coalaMoto.posicaoY = 475;
+        pontos += 5;
     }
-    
+
+    if (coracao.saiuDaTela()) {
+        coracao.reseta();
+        pontos += 5;
+    }
+}
+
+function verificaFase() {
+    if (fase === 1 && pontos >= 50) {
+        fase = 2;
+    } else if (fase === 2 && pontos >= 100) {
+        fase = 3;
+    }
+}
+
+function verificaGameOver() {
+    if (pinguim.vida <= 0 && pinguim2.vida <= 0) {
+        estado = 'gameOver';
+    }
+}
+
+function verificaVitoria() {
+    if (fase === 3 && pontos >= 150) {
+        estado = 'vitoria';
+    }
+}
+
+function desenhaTela(titulo, linhas, corFundo, corTitulo) {
+    canvas.fillStyle = corFundo;
+    canvas.fillRect(0, 0, 1280, 720);
+    canvas.font = '50px Metamorphous';
+    canvas.fillStyle = corTitulo;
+    canvas.fillText(titulo, 400, 200);
+    canvas.font = '20px Metamorphous';
+    canvas.fillStyle = 'white';
+    linhas.forEach((linha, i) => {
+        canvas.fillText(linha, 400, 300 + i * 40);
+    });
+}
+
+function desenhaJogo() {
+    background.src = `./img/fundo${fase}.png`;
+    canvas.drawImage(background, 0, 0, 1280, 720);
+
+    ursoPolar.desenha(canvas);
+    foca.desenha(canvas);
+    coracao.desenha(canvas);
+
+    if (fase >= 2) {
+        yeti.desenha(canvas);
+    }
+
+    if (fase >= 3) {
+        coalaMoto.desenha(canvas);
+    }
+
+    if (pinguim.vida > 0) {
+        pinguim.desenha(canvas);
+    }
+
+    if (pinguim2.vida > 0) {
+        pinguim2.desenha(canvas);
+    }
+
+    canvas.font = '27px Metamorphous';
+    canvas.fillStyle = '#ff4d4d';
+    canvas.fillText(`Vidas P1: ${Math.max(0, pinguim.vida)}`, 40, 40);
+    canvas.fillStyle = '#4da6ff';
+    canvas.fillText(`Vidas P2: ${Math.max(0, pinguim2.vida)}`, 200, 40);
+    canvas.fillStyle = 'black';
+    canvas.fillText(`Fase: ${fase}`, 550, 40);
+    canvas.fillText(`Pontos: ${pontos}`, 1000, 40);
 }
 
 function desenha() {
-    if (jogar) {
-        if (img.complete && img.naturalWidth !== 0) {
-            des.drawImage(img, x, y, w, h);
-        } else {
-            des.fillStyle = '#2c3e50';
-            des.fillRect(x, y, w, h);
-        }
+    if (estado === 'inicio') {
+        desenhaTela('Pingui Run', [
+            'Pinguim 1: W (cima) e S (baixo)',
+            'Pinguim 2: Setas Cima e Baixo',
+            '',
+            'Sobreviva, pegue corações congelados',
+            'e desvie dos seus inimigos da neve!',
+            '',
+            'Pressione ESPAÇO para começar'
+        ], '#003366', '#ffffff');
+    }
 
-        ursoPolar.des_pinguin();
-        coalaMoto.des_pinguin()
-        console.log(coalaMoto)
-        if (fase >= 2) yeti.des_pinguin();
-        foca.des_pinguin();
+    if (estado === 'jogando') {
+        desenhaJogo();
+    }
 
-        // Só desenha o jogador se ele estiver vivo
-        if (pinguin.vida > 0) pinguin.des_pinguin();
-        if (pinguin2.vida > 0) pinguin2.des_pinguin();
+    if (estado === 'gameOver') {
+        desenhaTela('Game Over', [`Pontos: ${pontos}`, 'Pressione ESPACO para reiniciar'], '#1a0000', '#ff4d4d');
+    }
 
-        // HUD - Interface
-        des.font = '26px Arial';
-
-        // Vidas Jogador 1
-        des.fillStyle = '#ff4d4d'; // Vermelho
-        des.fillText('Vidas P1: ' + Math.max(0, pinguin.vida), 40, 40);
-
-        // Vidas Jogador 2
-        des.fillStyle = '#4da6ff'; // Azul
-        des.fillText('Vidas P2: ' + Math.max(0, pinguin2.vida), 200, 40);
-
-        des.fillStyle = 'black';
-        des.fillText('Fase: ' + fase, 550, 40);
-
-        des.fillStyle = 'black';
-        des.fillText('Pontos: ' + pinguin.pontos, 1000, 40);
-
-    } else {
-        des.fillStyle = 'black';
-        des.fillRect(x, y, w, h);
-
-        des.font = '60px Arial';
-        des.fillStyle = 'yellow';
-        des.fillText('GAME OVER', 400, 350);
-
-        des.font = '25px Arial';
-        des.fillStyle = 'white';
-        des.fillText('Pontuação Final: ' + pinguin.pontos, 480, 400);
+    if (estado === 'vitoria') {
+        desenhaTela('Você Venceu!', [`Pontos: ${pontos}`, 'Pressione ESPACO para reiniciar'], '#001a00', '#66ff66');
     }
 }
 
 function atualiza() {
-    if (jogar) {
-        // Só movimenta se estiver vivo
-        if (pinguin.vida > 0) pinguin.mov_pinguin();
-        if (pinguin2.vida > 0) pinguin2.mov_pinguin();
+    gerenciarMusica();
 
-        ursoPolar.mov_pinguin();
-        if (fase >= 2) yeti.mov_pinguin();
-        if (fase >= 3) coalaMoto.mov_pinguin();
-        foca.mov_pinguin();
+    if (estado === 'jogando') {
+        if (fase >= 2) {
+            ursoPolar.velocidade = 6;
+            yeti.velocidade = 6;
+            foca.velocidade = 6;
+            coracao.velocidade = 6;
+        }
 
+        if (fase === 3) {
+            ursoPolar.velocidade = 7;
+            yeti.velocidade = 7;
+            foca.velocidade = 7;
+            coracao.velocidade = 7;
+            coalaMoto.velocidade = 14;
+        }
+
+        ursoPolar.atualiza();
+        foca.atualiza();
+        coracao.atualiza();
+
+        if (fase >= 2) {
+            yeti.atualiza();
+        }
+
+        if (fase >= 3) {
+            coalaMoto.atualiza();
+        }
+
+        if (pinguim.vida > 0) {
+            pinguim.atualiza();
+        } else {
+            pinguim.direcao = 0;
+        }
+
+        if (pinguim2.vida > 0) {
+            pinguim2.atualiza();
+        } else {
+            pinguim2.direcao = 0;
+        }
 
         colisao();
         pontuacao();
-        ver_fase();
-        game_over();
+        verificaFase();
+        verificaGameOver();
+        verificaVitoria();
     }
 }
 
 function main() {
-    des.clearRect(0, 0, 1200, 700);
+    canvas.clearRect(0, 0, 1280, 720);
     desenha();
     atualiza();
     requestAnimationFrame(main);
 }
+
+document.addEventListener('keydown', (evento) => {
+    if (estado === 'inicio' && evento.code === 'Space') {
+        estado = 'jogando';
+    }
+
+    if (estado === 'jogando') {
+        if (evento.key === 'w' || evento.key === 'W') {
+            pinguim.direcao = -1;
+        }
+
+        if (evento.key === 's' || evento.key === 'S') {
+            pinguim.direcao = 1;
+        }
+
+        if (evento.key === 'ArrowUp') {
+            pinguim2.direcao = -1;
+        }
+
+        if (evento.key === 'ArrowDown') {
+            pinguim2.direcao = 1;
+        }
+    }
+
+    if (evento.code === 'Space' && (estado === 'gameOver' || estado === 'vitoria')) {
+        resetarJogo();
+    }
+});
+
+document.addEventListener('keyup', (evento) => {
+    if (evento.key === 'w' || evento.key === 's' || evento.key === 'W' || evento.key === 'S') {
+        pinguim.direcao = 0;
+    }
+
+    if (evento.key === 'ArrowUp' || evento.key === 'ArrowDown') {
+        pinguim2.direcao = 0;
+    }
+});
 
 main();
